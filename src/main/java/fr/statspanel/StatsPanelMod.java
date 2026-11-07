@@ -31,6 +31,7 @@ public final class StatsPanelMod implements DedicatedServerModInitializer {
                     FabricLoader.getInstance().getGameDir().resolve("usercache.json"),
                     configDir.resolve("statspanel-names.json"),
                     config.resolveNamesWithMojang);
+            XpTracker.start(server.getWorldPath(LevelResource.ROOT).resolve("statspanel_xp_used.json"));
             collector = new MetricsCollector(server, config);
             repository = new PlayerStatsRepository(
                     server.getWorldPath(LevelResource.PLAYER_STATS_DIR), names, config);
@@ -49,6 +50,7 @@ public final class StatsPanelMod implements DedicatedServerModInitializer {
             if (web != null) web.stop();
             if (collector != null) collector.shutdown();
             if (names != null) names.shutdown();
+            XpTracker.stop();
             if (assets != null) assets.shutdown();
             assets = null;
             web = null;
@@ -65,6 +67,7 @@ public final class StatsPanelMod implements DedicatedServerModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             MetricsCollector c = collector;
             if (c != null) c.onTickEnd();
+            if (server.getTickCount() % 6000 == 0) XpTracker.saveIfDirty(); // toutes les 5 min
         });
     }
 }

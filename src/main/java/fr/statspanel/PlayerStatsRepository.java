@@ -4,6 +4,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -31,8 +34,15 @@ public final class PlayerStatsRepository {
     };
     private static final String[] SUMMARY_KEYS = {
             "playTime", "deaths", "mobKills", "playerKills", "distanceCm", "mined", "crafted", "used",
-            "jumps", "damageDealt", "damageTaken", "fishCaught", "trades", "animalsBred"
+            "jumps", "damageDealt", "damageTaken", "fishCaught", "trades", "animalsBred",
+            "blocksPlaced", "xpUsed"
     };
+
+    /**
+     * Identifiants des objets qui sont des blocs. Poser un bloc incrémente minecraft:used pour
+     * son objet : la somme de ces entrées donne le nombre de blocs posés.
+     */
+    private static volatile Set<String> blockItems = Set.of();
 
     public record Entry(UUID uuid, long lastModified, JsonObject stats) {}
 
@@ -47,6 +57,11 @@ public final class PlayerStatsRepository {
         this.statsDir = statsDir;
         this.names = names;
         this.config = config;
+        Set<String> ids = new HashSet<>();
+        for (Item item : BuiltInRegistries.ITEM) {
+            if (item instanceof BlockItem) ids.add(String.valueOf(BuiltInRegistries.ITEM.getKey(item)));
+        }
+        blockItems = Set.copyOf(ids);
     }
 
     /** Tous les joueurs ayant un fichier de stats, plus les joueurs connectés qui n'en ont pas encore. */
@@ -107,7 +122,7 @@ public final class PlayerStatsRepository {
             o.addProperty("name", name);
             o.addProperty("online", perms.contains("players.online") && online.containsKey(e.uuid()));
             o.addProperty("lastSeen", e.lastModified());
-            o.add("summary", summary(e.stats()));
+            o.add("summary", summary(e.uuid(), e.stats()));
             arr.add(o);
         }
         JsonObject root = new JsonObject();
@@ -127,7 +142,7 @@ public final class PlayerStatsRepository {
         boolean isOnline = perms.contains("players.online") && online.containsKey(uuid);
         o.addProperty("online", isOnline);
         o.addProperty("lastSeen", e.lastModified());
-        o.add("summary", summary(e.stats()));
+        o.add("summary", summary(e.uuid(), e.stats()));
         o.add("live", isOnline && live != null && !live.isEmpty() ? live : null);
         if (perms.contains("players.details")) {
             JsonObject stats = new JsonObject();
@@ -156,7 +171,7 @@ public final class PlayerStatsRepository {
             String name = names.name(e.uuid(), online);
             if (config.isHidden(e.uuid(), name)) continue;
             count++;
-            JsonObject s = summary(e.stats());
+            JsonObject s = summary(e.uuid(), e.stats());
             for (String k : SUMMARY_KEYS) totals.merge(k, s.get(k).getAsLong(), Long::sum);
             for (String c : CATEGORIES) {
                 Map<String, long[]> m = agg.get(c);
@@ -222,7 +237,7 @@ public final class PlayerStatsRepository {
 
     // ------------------------------------------------------------------ résumé
 
-    static JsonObject summary(JsonObject stats) {
+    static JsonObject summary(UUID uuid, JsonObject stats) {
         JsonObject custom = category(stats, "minecraft:custom");
         long playTime = get(custom, "minecraft:play_time");
         if (playTime == 0) playTime = get(custom, "minecraft:play_one_minute"); // anciens mondes
@@ -248,6 +263,12 @@ public final class PlayerStatsRepository {
         o.addProperty("fishCaught", get(custom, "minecraft:fish_caught"));
         o.addProperty("trades", get(custom, "minecraft:traded_with_villager"));
         o.addProperty("animalsBred", get(custom, "minecraft:animals_bred"));
+        long placed = 0;
+        for (Map.Entry<String, JsonElement> e : category(stats, "minecraft:used").entrySet()) {
+            if (blockItems.contains(e.getKey())) placed += asLong(e.getValue());
+        }
+        o.addProperty("blocksPlaced", placed);
+        o.addProperty("xpUsed", XpTracker.levelsUsed(uuid));
         return o;
     }
 

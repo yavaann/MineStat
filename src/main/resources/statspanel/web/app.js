@@ -107,10 +107,12 @@ const SUMMARY_FIELDS = [
   ['fishCaught', 'Poissons pêchés', v => nf.format(v), 'cod'],
   ['trades', 'Échanges villageois', v => nf.format(v), 'emerald'],
   ['animalsBred', 'Animaux reproduits', v => nf.format(v), 'wheat'],
+  ['blocksPlaced', 'Blocs posés', v => nf.format(v), 'bricks'],
+  ['xpUsed', 'Niveaux d’XP dépensés', v => nf.format(v), 'experience_bottle'],
 ];
 const FIELD = Object.fromEntries(SUMMARY_FIELDS.map(f => [f[0], f]));
-const BOARDS = ['playTime', 'mined', 'mobKills', 'deaths', 'distanceCm', 'playerKills', 'crafted', 'jumps', 'damageDealt'];
-const TOTALS = ['playTime', 'mined', 'mobKills', 'deaths', 'distanceCm', 'crafted', 'jumps', 'fishCaught'];
+const BOARDS = ['playTime', 'mined', 'blocksPlaced', 'xpUsed', 'mobKills', 'deaths', 'distanceCm', 'playerKills', 'crafted', 'jumps', 'damageDealt'];
+const TOTALS = ['playTime', 'mined', 'blocksPlaced', 'xpUsed', 'mobKills', 'deaths', 'distanceCm', 'crafted', 'jumps', 'fishCaught'];
 const DIMENSIONS = {
   'minecraft:overworld': ['Overworld', 'grass_block'],
   'minecraft:the_nether': ['Nether', 'netherrack'],
