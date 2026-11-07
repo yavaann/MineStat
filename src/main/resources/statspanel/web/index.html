@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="fr" data-theme="deepslate" data-font="pixel" data-density="confortable">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stats du serveur</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    try {
+      const s = JSON.parse(localStorage.getItem('statspanel.style') || 'null');
+      if (s && typeof s.rev === 'number') {
+        const d = document.documentElement;
+        const t = s.theme === 'auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'deepslate' : 'calcite') : s.theme;
+        if (t) d.dataset.theme = t;
+        if (s.headingFont) d.dataset.font = s.headingFont;
+        if (s.density) d.dataset.density = s.density;
+      }
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <!-- ============================================================ ACCUEIL -->
+  <header class="hero" id="hero">
+    <canvas class="hero-canvas" id="hero-canvas" aria-hidden="true"></canvas>
+    <div class="hero-img" id="hero-img" aria-hidden="true"></div>
+    <div class="hero-shade" aria-hidden="true"></div>
+
+    <div class="shell hero-inner">
+      <div class="hero-bar">
+        <div class="brand">
+          <img class="brand-icon" src="favicon.svg" alt="" width="34" height="34">
+          <span class="brand-name">Stats du serveur</span>
+        </div>
+        <div class="hero-actions">
+          <button class="glass-btn" id="open-settings" type="button" hidden>
+            <span class="ico" style="--s:20px" data-icon="item:painting" data-l="A"></span>Apparence
+          </button>
+          <button class="glass-btn" id="account-btn" type="button">
+            <span class="ico" style="--s:20px" data-icon="item:tripwire_hook" data-l="C"></span><span id="account-label">Se connecter</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="hero-main">
+        <div class="hero-title">
+          <p class="status" id="status"><span class="dot" id="status-dot"></span><span id="status-text">Connexion…</span></p>
+          <h1 id="server-title">Serveur Minecraft</h1>
+          <p id="server-motd" class="motd"></p>
+          <p id="server-meta" class="hero-meta"></p>
+        </div>
+        <div class="hero-stats">
+          <div class="glass hero-stat" data-perm="server.performance">
+            <span class="hs-label">Ticks par seconde</span>
+            <span class="hs-value" id="h-tps">–</span>
+            <span class="tps-gauge" aria-hidden="true"><i id="tps-fill"></i></span>
+          </div>
+          <div class="glass hero-stat" data-perm="server.performance">
+            <span class="hs-label">Joueurs connectés</span>
+            <span class="hs-value" id="h-players">–</span>
+            <span class="head-stack" id="h-heads"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabs-wrap">
+    <nav class="shell tabs" role="tablist" aria-label="Sections">
+      <button role="tab" id="tab-serveur" data-view="serveur" aria-selected="true"><span class="ico" style="--s:22px" data-icon="item:comparator" data-l="S"></span>Serveur</button>
+      <button role="tab" id="tab-joueurs" data-view="joueurs" aria-selected="false" data-perm="players.list"><span class="ico" style="--s:22px" data-icon="item:name_tag" data-l="J"></span>Joueurs</button>
+      <button role="tab" id="tab-classements" data-view="classements" aria-selected="false" data-perm="leaderboards"><span class="ico" style="--s:22px" data-icon="item:nether_star" data-l="C"></span>Classements</button>
+      <button role="tab" id="tab-admin" data-view="admin" aria-selected="false" data-admin hidden><span class="ico" style="--s:22px" data-icon="item:command_block" data-l="A"></span>Administration</button>
+    </nav>
+  </div>
+
+  <div class="shell">
+    <div id="locked-banner" class="locked" hidden>
+      <span class="ico" style="--s:36px" data-icon="item:iron_door" data-l="🔒"></span>
+      <div><b>Certaines infos sont réservées aux membres.</b><br><span id="locked-list"></span></div>
+      <button class="btn" type="button" data-login>Se connecter</button>
+    </div>
+    <p id="error-banner" class="error" role="alert" hidden></p>
+
+    <main>
+      <!-- ============================================================ SERVEUR -->
+      <section id="view-serveur" class="view" role="tabpanel" aria-labelledby="tab-serveur">
+        <div class="cards">
+          <article class="panel stat-card" data-perm="server.performance">
+            <h2><span class="ico" style="--s:26px" data-icon="item:clock" data-l="T"></span>Durée d’un tick</h2>
+            <p class="big" id="v-mspt">–</p>
+            <p class="sub" id="v-mspt-sub"></p>
+          </article>
+          <article class="panel stat-card" data-perm="server.cpu">
+            <h2><span class="ico" style="--s:26px" data-icon="item:redstone" data-l="P"></span>Processeur</h2>
+            <p class="big" id="v-cpu">–</p>
+            <p class="sub" id="v-cpu-sub"></p>
+          </article>
+          <article class="panel stat-card ram-card" data-perm="server.memory">
+            <h2><span class="ico" style="--s:26px" data-icon="item:barrel" data-l="M"></span>Mémoire allouée</h2>
+            <div class="hotbar" id="ram-hotbar" role="img" aria-label="Mémoire utilisée"></div>
+            <p class="sub" id="v-ram-sub"></p>
+          </article>
+        </div>
+
+        <div class="split">
+          <section class="panel" data-perm="players.online">
+            <h2 class="panel-title"><span class="ico" style="--s:28px" data-icon="item:armor_stand" data-l="J"></span>Connectés maintenant</h2>
+            <ul id="online-list" class="online-list"></ul>
+          </section>
+          <section class="panel" data-perm="server.worlds">
+            <h2 class="panel-title"><span class="ico" style="--s:28px" data-icon="item:ender_eye" data-l="D"></span>Dimensions</h2>
+            <ul id="worlds-list" class="worlds"></ul>
+          </section>
+        </div>
+
+        <div class="charts" id="charts" data-perm="server.history">
+          <figure class="panel chart" data-perm="server.performance"><figcaption>Ticks par seconde</figcaption><canvas data-chart="tps"></canvas></figure>
+          <figure class="panel chart" data-perm="server.performance"><figcaption>Durée d’un tick</figcaption><canvas data-chart="mspt"></canvas></figure>
+          <figure class="panel chart" data-perm="server.memory"><figcaption>Mémoire utilisée</figcaption><canvas data-chart="heap"></canvas></figure>
+          <figure class="panel chart" data-perm="server.cpu"><figcaption>Processeur du serveur</figcaption><canvas data-chart="cpu"></canvas></figure>
+          <figure class="panel chart chart-wide"><figcaption>Joueurs connectés</figcaption><canvas data-chart="players"></canvas></figure>
+        </div>
+
+        <section class="panel" data-perm="server.machine">
+          <h2 class="panel-title"><span class="ico" style="--s:28px" data-icon="item:command_block" data-l="M"></span>Machine</h2>
+          <dl id="system-info" class="kv"></dl>
+        </section>
+      </section>
+
+      <!-- ============================================================ JOUEURS -->
+      <section id="view-joueurs" class="view" role="tabpanel" aria-labelledby="tab-joueurs" hidden>
+        <div class="toolbar">
+          <input type="search" id="player-search" class="field grow" placeholder="Rechercher un joueur" aria-label="Rechercher un joueur" autocomplete="off">
+          <label class="inline-label">Trier par
+            <select id="player-sort" class="field">
+              <option value="playTime">Temps de jeu</option>
+              <option value="lastSeen">Dernière activité</option>
+              <option value="name">Pseudo</option>
+              <option value="deaths">Morts</option>
+              <option value="mobKills">Mobs tués</option>
+              <option value="mined">Blocs minés</option>
+              <option value="distanceCm">Distance parcourue</option>
+            </select>
+          </label>
+        </div>
+        <ul id="player-grid" class="player-grid"></ul>
+      </section>
+
+      <!-- ============================================================ CLASSEMENTS -->
+      <section id="view-classements" class="view" role="tabpanel" aria-labelledby="tab-classements" hidden>
+        <section class="panel">
+          <h2 class="panel-title"><span class="ico" style="--s:28px" data-icon="item:beacon" data-l="T"></span>Tout le serveur, cumulé</h2>
+          <dl id="totals" class="totals"></dl>
+        </section>
+
+        <section class="panel explorer">
+          <h2 class="panel-title"><span class="ico" style="--s:28px" data-icon="item:spyglass" data-l="R"></span>Toutes les statistiques du serveur</h2>
+          <p class="sub">Combien d’ancien débris a été miné, de creepers tués, de gâteaux mangés… Cherche n’importe quoi, puis clique pour voir qui en a le plus.</p>
+          <div class="ex-search">
+            <span class="ico" style="--s:28px" data-icon="item:compass" data-l="?"></span>
+            <input type="search" id="ex-search" class="field" placeholder="Rechercher un bloc, un objet, une créature… (ex. débris, diamant, creeper)" aria-label="Rechercher une statistique" autocomplete="off">
+          </div>
+          <div class="cat-bar" id="ex-cats"></div>
+          <div class="ex-head">
+            <span id="ex-count" class="sub" role="status"></span>
+            <label class="inline-label">Trier par
+              <select id="ex-sort" class="field">
+                <option value="value">Le plus grand total</option>
+                <option value="holders">Le plus de joueurs</option>
+                <option value="name">Nom (A → Z)</option>
+              </select>
+            </label>
+          </div>
+          <ol id="ex-list" class="ex-list"></ol>
+          <div class="ex-more"><button class="btn" id="ex-more" type="button" hidden>Afficher plus</button></div>
+        </section>
+
+        <h2 class="section-title" id="boards-title"><span class="ico" style="--s:30px" data-icon="item:golden_helmet" data-l="M"></span>Meilleurs joueurs</h2>
+        <div id="boards" class="boards"></div>
+      </section>
+
+      <!-- ============================================================ ADMINISTRATION -->
+      <section id="view-admin" class="view" role="tabpanel" aria-labelledby="tab-admin" hidden>
+        <section class="panel">
+          <h2 class="panel-title"><span class="ico" style="--s:28px" data-icon="item:iron_door" data-l="D"></span>Ce que chacun peut voir</h2>
+          <p class="sub">Les membres voient toujours au moins ce que voient les visiteurs. Les admins voient tout.</p>
+          <div class="table-wrap">
+            <table class="perm-table">
+              <thead><tr><th scope="col">Information</th><th scope="col">Visiteurs</th><th scope="col">Membres</th><th scope="col">Admins</th></tr></thead>
+              <tbody id="perm-rows"></tbody>
+            </table>
+          </div>
+          <div class="form-actions"><span class="save-msg" id="perm-msg" role="status"></span><button class="btn primary" id="perm-save" type="button">Enregistrer les droits</button></div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title"><span class="ico" style="--s:28px" data-icon="item:name_tag" data-l="C"></span>Comptes</h2>
+          <div class="table-wrap">
+            <table class="user-table">
+              <thead><tr><th scope="col">Identifiant</th><th scope="col">Rôle</th><th scope="col">Nouveau mot de passe</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
+              <tbody id="user-rows"></tbody>
+            </table>
+          </div>
+          <form class="add-user" id="add-user">
+            <h3>Créer un compte</h3>
+            <input class="field" name="username" placeholder="Identifiant" autocomplete="off" required>
+            <input class="field" name="password" type="password" placeholder="Mot de passe (8 caractères min.)" autocomplete="new-password" required>
+            <select class="field" name="role"><option value="membre">Membre</option><option value="admin">Admin</option></select>
+            <button class="btn primary" type="submit">Créer le compte</button>
+          </form>
+          <p class="save-msg" id="user-msg" role="status"></p>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title"><span class="ico" style="--s:28px" data-icon="item:painting" data-l="P"></span>Page d’accueil et apparence</h2>
+          <div class="admin-grid">
+            <label class="field-label">Titre du panel
+              <input class="field" id="a-title" maxlength="80" placeholder="Vide = MOTD du serveur">
+            </label>
+            <div class="field-label">Fond de l’accueil
+              <div class="seg" id="a-bg">
+                <label><input type="radio" name="a-bg" value="auto"><span>Automatique</span></label>
+                <label><input type="radio" name="a-bg" value="image"><span>Image</span></label>
+                <label><input type="radio" name="a-bg" value="paysage"><span>Paysage</span></label>
+                <label><input type="radio" name="a-bg" value="aucun"><span>Aucun</span></label>
+              </div>
+              <span class="sub">Automatique : ton image si tu en as envoyé une, sinon un paysage dessiné avec les blocs du jeu.</span>
+            </div>
+          </div>
+          <div class="bg-upload">
+            <div class="bg-preview" id="bg-preview"><span class="sub">Aucune image envoyée</span></div>
+            <div>
+              <p><b>Une capture du spawn ?</b> En jeu, appuie sur F1 puis F2 au spawn, et envoie la capture ici (PNG, JPEG ou WebP, 10 Mo max).</p>
+              <div class="row">
+                <label class="btn"><input type="file" id="bg-file" accept="image/png,image/jpeg,image/webp" hidden>Choisir une image</label>
+                <button class="btn" type="button" id="bg-delete">Retirer l’image</button>
+              </div>
+            </div>
+          </div>
+          <div class="admin-grid">
+            <div class="field-label">Thème par défaut
+              <select class="field" id="a-theme">
+                <option value="auto">Automatique</option><option value="calcite">Calcite</option><option value="deepslate">Deepslate</option>
+                <option value="nether">Nether</option><option value="end">End</option><option value="inventaire">Inventaire</option>
+              </select>
+            </div>
+            <div class="field-label">Titres et chiffres
+              <select class="field" id="a-font"><option value="pixel">Pixel</option><option value="classique">Classique</option></select>
+            </div>
+            <div class="field-label">Densité
+              <select class="field" id="a-density"><option value="confortable">Confortable</option><option value="compacte">Compacte</option></select>
+            </div>
+            <label class="check"><input type="checkbox" id="a-icons"> Afficher les textures</label>
+            <label class="check"><input type="checkbox" id="a-visitor"> Laisser les visiteurs changer de style</label>
+          </div>
+          <label class="field-label">Joueurs masqués du panel (un pseudo ou UUID par ligne)
+            <textarea class="field" id="a-hidden" rows="3"></textarea>
+          </label>
+          <div class="form-actions"><span class="save-msg" id="settings-msg" role="status"></span><button class="btn primary" id="settings-save" type="button">Enregistrer</button></div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title"><span class="ico" style="--s:28px" data-icon="item:crafting_table" data-l="T"></span>Textures du jeu</h2>
+          <dl class="kv" id="assets-info"></dl>
+          <div class="form-actions">
+            <span class="save-msg" id="assets-msg" role="status"></span>
+            <button class="btn" id="assets-retry" type="button">Réessayer</button>
+            <button class="btn" id="assets-force" type="button">Tout retélécharger</button>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============================================================ FICHE JOUEUR -->
+  <dialog id="player-dialog" class="panel" aria-labelledby="pd-name">
+    <button class="btn icon-btn pd-close" type="button" data-close aria-label="Fermer">✕</button>
+    <div id="pd-content"></div>
+  </dialog>
+
+  <!-- ============================================================ CONNEXION -->
+  <dialog id="login-dialog" class="panel small-dialog" aria-labelledby="login-title">
+    <button class="btn icon-btn pd-close" type="button" data-close aria-label="Fermer">✕</button>
+    <h2 id="login-title" class="panel-title"><span class="ico" style="--s:28px" data-icon="item:tripwire_hook" data-l="C"></span>Connexion</h2>
+    <form id="login-form" class="stack">
+      <label class="field-label">Identifiant<input class="field" name="username" autocomplete="username" required></label>
+      <label class="field-label">Mot de passe<input class="field" name="password" type="password" autocomplete="current-password" required></label>
+      <p class="form-error" id="login-error" role="alert" hidden></p>
+      <button class="btn primary" type="submit">Se connecter</button>
+    </form>
+  </dialog>
+
+  <!-- ============================================================ MON COMPTE -->
+  <dialog id="account-dialog" class="panel small-dialog" aria-labelledby="account-title">
+    <button class="btn icon-btn pd-close" type="button" data-close aria-label="Fermer">✕</button>
+    <h2 id="account-title" class="panel-title">Mon compte</h2>
+    <p id="account-info" class="sub"></p>
+    <form id="password-form" class="stack">
+      <h3>Changer de mot de passe</h3>
+      <label class="field-label">Mot de passe actuel<input class="field" name="current" type="password" autocomplete="current-password" required></label>
+      <label class="field-label">Nouveau mot de passe<input class="field" name="next" type="password" autocomplete="new-password" minlength="8" required></label>
+      <p class="form-error" id="password-msg" role="status" hidden></p>
+      <button class="btn" type="submit">Changer le mot de passe</button>
+    </form>
+    <div class="form-actions"><button class="btn danger" id="logout-btn" type="button">Se déconnecter</button></div>
+  </dialog>
+
+  <!-- ============================================================ APPARENCE -->
+  <dialog id="settings-dialog" class="panel settings" aria-labelledby="settings-title">
+    <button class="btn icon-btn pd-close" type="button" data-close aria-label="Fermer">✕</button>
+    <h2 id="settings-title" class="panel-title">Apparence</h2>
+    <p class="sub">Ces réglages sont gardés dans ce navigateur. <span id="settings-origin"></span></p>
+    <fieldset>
+      <legend>Thème</legend>
+      <div class="theme-grid">
+        <label class="theme-opt"><input type="radio" name="theme" value="auto"><span class="swatch sw-auto"></span>Automatique</label>
+        <label class="theme-opt"><input type="radio" name="theme" value="calcite"><span class="swatch sw-calcite"></span>Calcite</label>
+        <label class="theme-opt"><input type="radio" name="theme" value="deepslate"><span class="swatch sw-deepslate"></span>Deepslate</label>
+        <label class="theme-opt"><input type="radio" name="theme" value="nether"><span class="swatch sw-nether"></span>Nether</label>
+        <label class="theme-opt"><input type="radio" name="theme" value="end"><span class="swatch sw-end"></span>End</label>
+        <label class="theme-opt"><input type="radio" name="theme" value="inventaire"><span class="swatch sw-inventaire"></span>Inventaire</label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Titres et chiffres</legend>
+      <div class="seg">
+        <label><input type="radio" name="headingFont" value="pixel"><span>Pixel</span></label>
+        <label><input type="radio" name="headingFont" value="classique"><span>Classique</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Densité</legend>
+      <div class="seg">
+        <label><input type="radio" name="density" value="confortable"><span>Confortable</span></label>
+        <label><input type="radio" name="density" value="compacte"><span>Compacte</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Textures des blocs et objets</legend>
+      <div class="seg">
+        <label><input type="radio" name="showIcons" value="true"><span>Afficher</span></label>
+        <label><input type="radio" name="showIcons" value="false"><span>Masquer</span></label>
+      </div>
+    </fieldset>
+    <div class="form-actions"><button class="btn" id="settings-reset" type="button">Revenir au style du serveur</button></div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
