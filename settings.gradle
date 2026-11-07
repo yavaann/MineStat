@@ -9,4 +9,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'statspanel'
+rootProject.name = 'minestat'

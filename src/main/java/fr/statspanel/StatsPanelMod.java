@@ -11,8 +11,8 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 
 public final class StatsPanelMod implements DedicatedServerModInitializer {
-    public static final String MOD_ID = "statspanel";
-    public static final Logger LOG = LoggerFactory.getLogger("StatsPanel");
+    public static final String MOD_ID = "minestat";
+    public static final Logger LOG = LoggerFactory.getLogger("MineStat");
 
     private PanelConfig config;
     private MetricsCollector collector;

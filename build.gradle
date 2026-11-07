@@ -44,9 +44,14 @@ jar {
     }
 }
 
-// Copie le .jar du mod dans le dossier parent (ex. statspanel/ quand le projet est dans statspanel/MineStat)
-tasks.register('copyJarToParent', Copy) {
-    from tasks.named('jar')
-    into rootProject.projectDir.parentFile
+// Copie le .jar du mod dans le dossier parent (ex. statspanel/ quand le projet est dans statspanel/MineStat).
+// Simple copie de fichier : une tâche Copy de Gradle refuse une destination qui contient le projet.
+def jarDestDir = rootProject.projectDir.parentFile
+tasks.named('jar') {
+    doLast {
+        def out = archiveFile.get().asFile
+        def dest = new File(jarDestDir, out.name)
+        java.nio.file.Files.copy(out.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        println "Jar copie dans : ${dest}"
+    }
 }
-tasks.named('build') { finalizedBy 'copyJarToParent' }

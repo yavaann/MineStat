@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "statspanel",
+  "id": "minestat",
   "version": "${version}",
-  "name": "Stats Panel",
+  "name": "MineStat",
   "description": "Panel web de statistiques du serveur et des joueurs, servi directement par le serveur.",
   "authors": ["toi"],
   "license": "MIT",
