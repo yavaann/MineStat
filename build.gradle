@@ -43,3 +43,10 @@ jar {
         rename { "${it}_${inputs.properties.archivesName}" }
     }
 }
+
+// Copie le .jar du mod dans le dossier parent (ex. statspanel/ quand le projet est dans statspanel/MineStat)
+tasks.register('copyJarToParent', Copy) {
+    from tasks.named('jar')
+    into rootProject.projectDir.parentFile
+}
+tasks.named('build') { finalizedBy 'copyJarToParent' }
